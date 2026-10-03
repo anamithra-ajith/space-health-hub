@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Astronaut Health Monitoring Dashboard | Mission Control Telemetry</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300f0ff'><path d='M12 2a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z'/></svg>">
+</head>
+<body>
+
+  <div class="dashboard-app">
+    <!-- ====================================================================
+         TOP MISSION HUD HEADER
+         ==================================================================== -->
+    <header class="mission-header">
+      <div class="mission-brand">
+        <div class="mission-logo-badge">
+          <!-- Space Exploration Orbit Icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M3.6 9h16.8"></path>
+            <path d="M3.6 15h16.8"></path>
+            <path d="M12 3a14.5 14.5 0 000 18"></path>
+            <path d="M12 3a14.5 14.5 0 010 18"></path>
+          </svg>
+        </div>
+        <div class="mission-title-group">
+          <h1>Orion Bio-Telemetry <span>// AR-VII</span></h1>
+          <div class="astronaut-meta">
+            <span>ASTRONAUT: <strong>CDR. ALEX VANCE</strong></span>
+            <span class="tag">EVA SUIT MK-IV</span>
+            <span class="tag">AIRLOCK 02</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Mission Elapsed Time & UTC Clock -->
+      <div class="mission-clock-group">
+        <div class="clock-item">
+          <span class="label">Mission Elapsed Time</span>
+          <span class="value" id="clockMET">DAY 142 • 09:42:15</span>
+        </div>
+        <div class="clock-divider"></div>
+        <div class="clock-item">
+          <span class="label">Coordinated Universal Time</span>
+          <span class="value" id="clockUTC">2026-10-03 14:42:15 UTC</span>
+        </div>
+      </div>
+
+      <!-- Master Health Status & Audio Settings -->
+      <div class="header-actions">
+        <!-- Master Status Badge (Normal, Warning, Critical) -->
+        <div class="master-health-badge status-normal" id="masterHealthBadge">
+          <span class="status-dot"></span>
+          <span id="masterHealthText">NORMAL</span>
+        </div>
+
+        <!-- Audio Alert Mute Toggle -->
+        <button class="hud-btn active" id="btnToggleAudio" title="Toggle Audio Alarms">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path>
+          </svg>
+          Sound: ON
+        </button>
+      </div>
+    </header>
+
+    <!-- ====================================================================
+         AUTOMATED CRITICAL ALERT TRIGGER BANNER
+         ==================================================================== -->
+    <section class="alert-banner" id="alertBanner" role="alert">
+      <div class="alert-banner-left">
+        <div class="alert-icon-pulse">
+          <svg width="22" height="22" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+          </svg>
+        </div>
+        <div class="alert-text-group">
+          <h3 id="alertBannerTitle">CRITICAL ALERT TRIGGERED</h3>
+          <p id="alertBannerDesc">Vital threshold breached. Flight surgeon protocol initiated.</p>
+        </div>
+      </div>
+      <div class="alert-actions">
+        <button class="alert-btn-ack" id="btnAckAlert">ACKNOWLEDGE</button>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         PRIMARY TELEMETRY GRID (5 CORE METRICS)
+         ==================================================================== -->
+    <main class="telemetry-grid">
+      
+      <!-- 1. HEART RATE (BPM + ECG Canvas) -->
+      <article class="param-card status-normal" id="cardHeartRate">
+        <div class="card-header-line">
+          <div class="param-title">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+            </svg>
+            Heart Rate
+          </div>
+          <span class="param-badge normal" id="badgeHeartRate">NORMAL</span>
+        </div>
+
+        <div class="metric-value-box">
+          <span class="metric-big" id="valHeartRate">72</span>
+          <span class="metric-unit">BPM</span>
+        </div>
+
+        <!-- Real-time Animated ECG Oscilloscope -->
+        <div class="ecg-container" title="Live Cardiac Waveform (P-Q-R-S-T)">
+          <canvas id="ecgCanvas" width="280" height="48"></canvas>
+        </div>
+
+        <div class="card-footer-stats">
+          <span>Target: <strong>55 - 100</strong></span>
+          <span>Crit: <strong>&lt;50 / &gt;120</strong></span>
+        </div>
+      </article>
+
+      <!-- 2. OXYGEN LEVEL (SpO2 % + Threshold Meter) -->
+      <article class="param-card status-normal" id="cardOxygen">
+        <div class="card-header-line">
+          <div class="param-title">
+            <!-- Oxygen Molecule Icon -->
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="8" stroke-width="2"></circle>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 3"></path>
+            </svg>
+            Blood Oxygen
+          </div>
+          <span class="param-badge normal" id="badgeOxygen">NORMAL</span>
+        </div>
+
+        <div class="metric-value-box">
+          <span class="metric-big" id="valOxygen">98.2</span>
+          <span class="metric-unit">% SpO2</span>
+        </div>
+
+        <div class="target-track-bar" title="SpO2 Level">
+          <div class="target-fill-bar" id="o2FillBar" style="width: 98.2%;"></div>
+        </div>
+
+        <div class="card-footer-stats">
+          <span>Nominal: <strong>&ge;95%</strong></span>
+          <span>Alert Trigger: <strong>&lt;90%</strong></span>
+        </div>
+      </article>
+
+      <!-- 3. BODY TEMPERATURE (°C / °F Switchable) -->
+      <article class="param-card status-normal" id="cardTemp">
+        <div class="card-header-line">
+          <div class="param-title">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+            </svg>
+            Core Temp
+          </div>
+          <button class="temp-toggle-btn" id="btnToggleTemp" title="Switch between °C and °F">Unit: °C</button>
+        </div>
+
+        <div class="metric-value-box">
+          <span class="metric-big" id="valTemp">36.8</span>
+          <span class="metric-unit" id="unitTemp">°C</span>
+        </div>
+
+        <div class="target-track-bar">
+          <div class="target-fill-bar" id="tempFillBar" style="width: 52%;"></div>
+        </div>
+
+        <div class="card-footer-stats">
+          <span class="param-badge normal" id="badgeTemp">NORMAL</span>
+          <span>Safe: <strong>36.2 - 37.5°C</strong></span>
+        </div>
+      </article>
+
+      <!-- 4. SLEEP DURATION (Hours + Sleep Stage Breakdown) -->
+      <article class="param-card status-normal" id="cardSleep">
+        <div class="card-header-line">
+          <div class="param-title">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>
+            </svg>
+            Sleep Duration
+          </div>
+          <span class="param-badge normal" id="badgeSleep">NORMAL</span>
+        </div>
+
+        <div class="metric-value-box">
+          <span class="metric-big" id="valSleep">7.4</span>
+          <span class="metric-unit">Hours</span>
+        </div>
+
+        <!-- Sleep stages breakdown bar -->
+        <div>
+          <div class="sleep-stage-bar" title="Deep (Blue) | REM (Purple) | Light (Cyan)">
+            <div class="sleep-segment sleep-deep" id="sleepDeep" style="width: 28%;"></div>
+            <div class="sleep-segment sleep-rem" id="sleepRem" style="width: 24%;"></div>
+            <div class="sleep-segment sleep-light" id="sleepLight" style="width: 48%;"></div>
+          </div>
+        </div>
+
+        <div class="card-footer-stats">
+          <span>Target: <strong>8.0 hrs</strong></span>
+          <span>Debt: <strong>-0.6 hrs</strong></span>
+        </div>
+      </article>
+
+      <!-- 5. EXERCISE TIME (Daily Countermeasure Tracking) -->
+      <article class="param-card status-normal" id="cardExercise">
+        <div class="card-header-line">
+          <div class="param-title">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+            </svg>
+            Exercise Time
+          </div>
+          <span class="param-badge normal" id="badgeExercise">NORMAL</span>
+        </div>
+
+        <div class="metric-value-box">
+          <span class="metric-big" id="valExercise">78</span>
+          <span class="metric-unit">Mins</span>
+        </div>
+
+        <div class="target-track-bar" title="Daily Countermeasure Progress">
+          <div class="target-fill-bar" id="exerciseFillBar" style="width: 65%;"></div>
+        </div>
+
+        <div class="card-footer-stats">
+          <span>NASA Quota: <strong>120 mins</strong></span>
+          <span>Cal: <strong>485 kcal</strong></span>
+        </div>
+      </article>
+
+    </main>
+
+    <!-- ====================================================================
+         SECONDARY ROW: MULTI-PARAM HISTORICAL TRENDS & SUIT LIFE SUPPORT
+         ==================================================================== -->
+    <section class="secondary-row">
+      <!-- Real-time Chart -->
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+            </svg>
+            Live Multi-Channel Telemetry Stream
+          </div>
+          <div class="chart-legend">
+            <div class="legend-item"><span class="legend-dot hr"></span> Heart Rate</div>
+            <div class="legend-item"><span class="legend-dot spo2"></span> SpO2 (%)</div>
+            <div class="legend-item"><span class="legend-dot temp"></span> Temp (°C)</div>
+          </div>
+        </div>
+        <div class="chart-canvas-wrapper">
+          <canvas id="trendChartCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Life Support & Suit Telemetry Context -->
+      <div class="suit-card">
+        <div class="chart-title">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+          Suit Life Support
+        </div>
+        <div class="suit-telemetry-list">
+          <div class="suit-item">
+            <div class="suit-item-info">
+              <span class="suit-item-label">Internal Suit Pressure</span>
+              <span class="suit-item-val">4.3 psi (100% O2)</span>
+            </div>
+            <span class="suit-badge">STABLE</span>
+          </div>
+
+          <div class="suit-item">
+            <div class="suit-item-info">
+              <span class="suit-item-label">Suit CO2 Partial Pressure</span>
+              <span class="suit-item-val">0.18 mmHg</span>
+            </div>
+            <span class="suit-badge">SAFE</span>
+          </div>
+
+          <div class="suit-item">
+            <div class="suit-item-info">
+              <span class="suit-item-label">Radiation Dosimeter</span>
+              <span class="suit-item-val">16.4 µSv / hr</span>
+            </div>
+            <span class="suit-badge">NOMINAL</span>
+          </div>
+
+          <div class="suit-item">
+            <div class="suit-item-info">
+              <span class="suit-item-label">Life-Support Battery</span>
+              <span class="suit-item-val">92% (6.8 hrs remaining)</span>
+            </div>
+            <span class="suit-badge">CHARGED</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         TERTIARY ROW: AUTOMATED ALERT LOG & SIMULATION CONTROL DECK
+         ==================================================================== -->
+    <section class="control-row">
+      
+      <!-- Automated Critical & Advisory Alert Event Log -->
+      <div class="log-card">
+        <div class="log-header">
+          <div class="log-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+            </svg>
+            Automated Alert Event Log
+          </div>
+          <button class="btn-clear-log" id="btnClearLog">Clear Log</button>
+        </div>
+        <div class="log-list" id="logList">
+          <!-- Populated dynamically by app.js -->
+        </div>
+      </div>
+
+      <!-- Mission Control Telemetry Simulation Deck -->
+      <div class="sim-card">
+        <div class="sim-header">
+          <div class="log-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+            </svg>
+            Simulation &amp; Anomaly Injection Deck
+          </div>
+          <span class="sim-badge-live">
+            <span class="blinker"></span>
+            STREAM: ACTIVE
+          </span>
+        </div>
+
+        <!-- Quick Scenario Presets -->
+        <div class="scenario-presets">
+          <button class="preset-btn" data-scenario="nominal">Baseline Nominal</button>
+          <button class="preset-btn warning-preset" data-scenario="eva_spacewalk">EVA Exertion</button>
+          <button class="preset-btn critical-preset" data-scenario="hypoxia">CRITICAL: Hypoxia (O2 &lt; 90%)</button>
+          <button class="preset-btn critical-preset" data-scenario="tachycardia">CRITICAL: Tachycardia (HR &gt; 120)</button>
+          <button class="preset-btn critical-preset" data-scenario="fever">CRITICAL: Hyperthermia (&gt; 38.3°C)</button>
+          <button class="preset-btn warning-preset" data-scenario="sleep_deprived">Sleep Deprivation</button>
+        </div>
+
+        <!-- Real-time Fine Tuning Sliders -->
+        <div class="slider-grid">
+          <div class="slider-group">
+            <div class="slider-group-header">
+              <span>Heart Rate</span>
+              <span class="slider-val-preview" id="previewHr">72 bpm</span>
+            </div>
+            <input type="range" class="sim-slider" id="sliderHr" min="40" max="160" step="1" value="72">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-group-header">
+              <span>Oxygen (SpO2)</span>
+              <span class="slider-val-preview" id="previewO2">98.2%</span>
+            </div>
+            <input type="range" class="sim-slider" id="sliderO2" min="75" max="100" step="0.1" value="98.2">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-group-header">
+              <span>Body Temp</span>
+              <span class="slider-val-preview" id="previewTemp">36.8°C</span>
+            </div>
+            <input type="range" class="sim-slider" id="sliderTemp" min="34" max="41" step="0.1" value="36.8">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-group-header">
+              <span>Sleep</span>
+              <span class="slider-val-preview" id="previewSleep">7.4h</span>
+            </div>
+            <input type="range" class="sim-slider" id="sliderSleep" min="2" max="10" step="0.1" value="7.4">
+          </div>
+
+          <div class="slider-group">
+            <div class="slider-group-header">
+              <span>Exercise</span>
+              <span class="slider-val-preview" id="previewExercise">78m</span>
+            </div>
+            <input type="range" class="sim-slider" id="sliderExercise" min="0" max="180" step="1" value="78">
+          </div>
+        </div>
+
+        <!-- Control Actions Toolbar -->
+        <div class="sim-controls-toolbar">
+          <div class="sim-btn-group">
+            <button class="sim-action-btn" id="btnToggleLive">
+              <svg fill="none" stroke="currentColor" width="16" height="16" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              Pause Feed
+            </button>
+            <button class="sim-action-btn" id="btnTestSound">
+              <svg fill="none" stroke="currentColor" width="16" height="16" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 10a4 4 0 010 4m3-7a8 8 0 010 10"></path>
+              </svg>
+              Test Alert Audio
+            </button>
+          </div>
+          <span style="font-size: 0.72rem; color: var(--text-muted); font-family: var(--font-mono);">
+            Tele-rate: 1.5s / 100% Real-time
+          </span>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+      <span>NASA / ESA Orion Biomedical Telemetry Link v4.2</span>
+      <span>Status: Continuous Encrypted High-Gain Feed Active</span>
+    </footer>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
